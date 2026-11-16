@@ -20,13 +20,42 @@
             <Field name="phone" type="tel" class="form-control" v-model="contactLocal.phone" />
             <ErrorMessage name="phone" class="error-feedback" />
         </div>
+
         <div class="form-group form-check">
-            <input name="favorite" type="checkbox" class="form-check-input" v-model="contactLocal.favorite" />
+            <!-- Thêm @change để tự động làm sạch danh mục con nếu bỏ chọn yêu thích -->
+            <input name="favorite" type="checkbox" class="form-check-input" v-model="contactLocal.favorite"
+                id="favorite" @change="handleFavoriteChange" />
             <label for="favorite" class="form-check-label">
                 <strong>Liên hệ yêu thích</strong>
             </label>
         </div>
-        <div class="form-group">
+
+        <div v-if="contactLocal.favorite" class="mt-3 p-3 border rounded bg-light">
+            <label class="form-label font-weight-bold">Chọn thể loại chính:</label>
+            <div class="d-flex gap-4 mb-3">
+                <div v-for="(cat, index) in categories" :key="index" class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="parentCategory" :id="'cat_' + index"
+                        :value="cat.name" v-model="contactLocal.parentCategory"
+                        @change="contactLocal.subCategories = []" />
+                    <label class="form-check-label" :for="'cat_' + index">{{ cat.name }}</label>
+                </div>
+            </div>
+
+            <div v-if="contactLocal.parentCategory" class="mt-2">
+                <label class="form-label font-weight-bold">Chọn chi tiết cho "{{ contactLocal.parentCategory
+                    }}":</label>
+                <div class="d-flex flex-wrap gap-4">
+                    <div v-for="(sub, subIndex) in currentSubCategories" :key="subIndex"
+                        class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" :id="'sub_' + subIndex" :value="sub"
+                            v-model="contactLocal.subCategories" />
+                        <label class="form-check-label" :for="'sub_' + subIndex">{{ sub }}</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group mt-3">
             <button class="btn btn-primary">Lưu</button>
             <button v-if="contactLocal._id" type="button" class="ml-2 btn btn-danger" @click="deleteContact">
                 Xóa
@@ -37,6 +66,7 @@
         </div>
     </Form>
 </template>
+
 <script>
 import * as yup from "yup";
 import { Form, Field, ErrorMessage } from "vee-validate";
@@ -69,12 +99,31 @@ export default {
                     "Số điện thoại không hợp lệ."
                 ),
         });
-        return {
-            // Chúng ta sẽ không muốn hiệu chỉnh props, nên tạo biến cục bộ
-            // contactLocal để liên kết với các input trên form
-            contactLocal: this.contact,
-            contactFormSchema,
+
+        // Bổ sung các giá trị mặc định cho parentCategory và subCategories vào contactLocal sẵn có
+        const contactLocal = {
+            ...this.contact,
+            parentCategory: this.contact.parentCategory || "",
+            subCategories: this.contact.subCategories || [],
         };
+
+        return {
+            contactLocal,
+            contactFormSchema,
+            // Khai báo danh mục cha và các con tương ứng
+            categories: [
+                { name: "Thể thao", children: ["Bóng đá", "Bắn súng", "Cầu lông"] },
+                { name: "Âm nhạc", children: ["Pop", "Rock", "Ballad"] },
+                { name: "Tin tức", children: ["Thời sự", "Công nghệ", "Giải trí"] }
+            ],
+        };
+    },
+    computed: {
+        // Lọc danh sách con dựa trên danh mục cha được chọn
+        currentSubCategories() {
+            const found = this.categories.find(c => c.name === this.contactLocal.parentCategory);
+            return found ? found.children : [];
+        }
     },
     methods: {
         submitContact() {
@@ -86,11 +135,16 @@ export default {
         Cancel() {
             const reply = window.confirm('You have unsaved changes! Do you want to leave ? ')
             if (!reply) {
-                // stay on the page if
-                // user clicks 'Cancel'
                 return false
             }
             else this.$router.push({ name: "contactbook" });
+        },
+        // Hàm phụ trợ khi bỏ chọn yêu thích sẽ reset lại các danh mục đã chọn
+        handleFavoriteChange() {
+            if (!this.contactLocal.favorite) {
+                this.contactLocal.parentCategory = "";
+                this.contactLocal.subCategories = [];
+            }
         }
     },
 };

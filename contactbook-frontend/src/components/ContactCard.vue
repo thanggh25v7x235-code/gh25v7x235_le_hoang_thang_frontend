@@ -28,5 +28,17 @@ export default {
             <i v-if="contact.favorite" class="fas fa-check"></i>
             <i v-else class="fas fa-times"></i>
         </div>
+
+        <div v-if="contact.favorite && contact.parentCategory" class="p-1 border-top mt-2 pt-2">
+            <div>
+                <strong>Thể loại chính:</strong> {{ contact.parentCategory }}
+            </div>
+            <div v-if="contact.subCategories && contact.subCategories.length > 0" class="mt-1">
+                <strong>Chi tiết:</strong>
+                <span v-for="(sub, index) in contact.subCategories" :key="index" class="badge bg-secondary mr-1 ml-1">
+                    {{ sub }}
+                </span>
+            </div>
+        </div>
     </div>
 </template>
